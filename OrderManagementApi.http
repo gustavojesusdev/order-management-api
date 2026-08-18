@@ -1,127 +1,274 @@
-@OrderManagementApi_HostAddress = http://localhost:5211
+@host = http://localhost:5211
+@produtoMouseId = 2
+@produtoInativoId = 4
 
+# Execute de cima para baixo na primeira vez.
+# Os IDs de cliente, produto de teste e pedidos são capturados dos responses.
+# Os IDs 2 e 4 pertencem ao seed; ajuste-os se seu banco já tinha produtos.
 
-### GET - Listar produtos
+### 1. Status da API
 
-GET {{OrderManagementApi_HostAddress}}/api/Produtos
+GET {{host}}/api/status
 Accept: application/json
 
 
-### POST válido
+### 2. Clientes iniciais
 
-POST {{OrderManagementApi_HostAddress}}/api/Produtos
-Content-Type: application/json
-
-{
-  "nome": "Headset",
-  "preco": 350,
-  "ativo": true
-}
-
-
-### POST inválido - nome vazio
-
-POST {{OrderManagementApi_HostAddress}}/api/Produtos
-Content-Type: application/json
-
-{
-  "nome": "",
-  "preco": 350,
-  "ativo": true
-}
-
-
-### POST inválido - nome muito curto
-
-POST {{OrderManagementApi_HostAddress}}/api/Produtos
-Content-Type: application/json
-
-{
-  "nome": "A",
-  "preco": 350,
-  "ativo": true
-}
-
-
-### POST inválido - preço zero
-
-POST {{OrderManagementApi_HostAddress}}/api/Produtos
-Content-Type: application/json
-
-{
-  "nome": "Headset",
-  "preco": 0,
-  "ativo": true
-}
-
-
-### POST inválido - preço negativo
-
-POST {{OrderManagementApi_HostAddress}}/api/Produtos
-Content-Type: application/json
-
-{
-  "nome": "Headset",
-  "preco": -200,
-  "ativo": true
-}
-
-
-### GET - Produto criado
-### Se você reiniciou a API antes dos testes, ele deverá ser ID 5.
-
-GET {{OrderManagementApi_HostAddress}}/api/Produtos/1
+GET {{host}}/api/clientes
 Accept: application/json
 
 
-### PUT válido
+### 3. Cadastrar cliente
 
-PUT {{OrderManagementApi_HostAddress}}/api/Produtos/5
+# @name criarCliente
+POST {{host}}/api/clientes
 Content-Type: application/json
 
 {
-  "nome": "Headset Gamer Pro",
-  "preco": 499.90,
+  "nome": "Gustavo Jesus",
+  "email": "gustavo.{{$guid}}@example.com",
   "ativo": true
 }
 
 
-### GET - Conferir alteração
+### 4. E-mail repetido - esperado 409
 
-GET {{OrderManagementApi_HostAddress}}/api/Produtos/5
+POST {{host}}/api/clientes
+Content-Type: application/json
+
+{
+  "nome": "Outro Gustavo",
+  "email": "{{criarCliente.response.body.$.email}}",
+  "ativo": true
+}
+
+
+### 5. Produtos iniciais
+
+GET {{host}}/api/produtos
 Accept: application/json
 
 
-### PUT inválido - nome curto
+### 6. Criar produto exclusivo para o teste de snapshot
 
-PUT {{OrderManagementApi_HostAddress}}/api/Produtos/5
+# @name criarProdutoSnapshot
+POST {{host}}/api/produtos
 Content-Type: application/json
 
 {
-  "nome": "A",
-  "preco": 499.90,
+  "nome": "Produto Snapshot {{$guid}}",
+  "preco": 100.00,
   "ativo": true
 }
 
 
-### PUT inválido - preço negativo
+### 7. Criar pedido Pix com dois itens
 
-PUT {{OrderManagementApi_HostAddress}}/api/Produtos/5
+# @name criarPedidoPix
+POST {{host}}/api/pedidos
 Content-Type: application/json
 
 {
-  "nome": "Headset",
-  "preco": -50,
-  "ativo": true
+  "clienteId": {{criarCliente.response.body.$.id}},
+  "itens": [
+    {
+      "produtoId": {{criarProdutoSnapshot.response.body.$.id}},
+      "quantidade": 1
+    },
+    {
+      "produtoId": {{produtoMouseId}},
+      "quantidade": 2
+    }
+  ]
 }
 
 
-### DELETE
+### 8. Consultar pedido completo
 
-DELETE {{OrderManagementApi_HostAddress}}/api/Produtos/5
-
-
-### GET depois do DELETE - deve dar 404
-
-GET {{OrderManagementApi_HostAddress}}/api/Produtos/5
+GET {{host}}/api/pedidos/{{criarPedidoPix.response.body.$.id}}
 Accept: application/json
+
+
+### 9. Pagar por Pix - taxa zero
+
+POST {{host}}/api/pedidos/{{criarPedidoPix.response.body.$.id}}/pagamento
+Content-Type: application/json
+
+{
+  "tipo": "Pix"
+}
+
+
+### 10. Segundo pagamento - esperado 409
+
+POST {{host}}/api/pedidos/{{criarPedidoPix.response.body.$.id}}/pagamento
+Content-Type: application/json
+
+{
+  "tipo": "Cartao"
+}
+
+
+### 11. Entregar antes de enviar - esperado 409
+
+PATCH {{host}}/api/pedidos/{{criarPedidoPix.response.body.$.id}}/status
+Content-Type: application/json
+
+{
+  "status": "Entregue"
+}
+
+
+### 12. Marcar como enviado
+
+PATCH {{host}}/api/pedidos/{{criarPedidoPix.response.body.$.id}}/status
+Content-Type: application/json
+
+{
+  "status": "Enviado"
+}
+
+
+### 13. Marcar como entregue
+
+PATCH {{host}}/api/pedidos/{{criarPedidoPix.response.body.$.id}}/status
+Content-Type: application/json
+
+{
+  "status": "Entregue"
+}
+
+
+### 14. Criar outro pedido para testar cartão
+
+# @name criarPedidoCartao
+POST {{host}}/api/pedidos
+Content-Type: application/json
+
+{
+  "clienteId": {{criarCliente.response.body.$.id}},
+  "itens": [
+    {
+      "produtoId": {{produtoMouseId}},
+      "quantidade": 3
+    }
+  ]
+}
+
+
+### 15. Pagar por cartão - taxa de 3%
+
+POST {{host}}/api/pedidos/{{criarPedidoCartao.response.body.$.id}}/pagamento
+Content-Type: application/json
+
+{
+  "tipo": "Cartao"
+}
+
+
+### 16. Listar todos os pedidos
+
+GET {{host}}/api/pedidos
+Accept: application/json
+
+
+### 17. Filtrar por cliente
+
+GET {{host}}/api/pedidos?clienteId={{criarCliente.response.body.$.id}}
+Accept: application/json
+
+
+### 18. Filtrar por status
+
+GET {{host}}/api/pedidos?status=Pago
+Accept: application/json
+
+
+### 19. Produto inativo no pedido - esperado 409
+
+POST {{host}}/api/pedidos
+Content-Type: application/json
+
+{
+  "clienteId": {{criarCliente.response.body.$.id}},
+  "itens": [
+    {
+      "produtoId": {{produtoInativoId}},
+      "quantidade": 1
+    }
+  ]
+}
+
+
+### 20. Produto repetido no pedido - esperado 400
+
+POST {{host}}/api/pedidos
+Content-Type: application/json
+
+{
+  "clienteId": {{criarCliente.response.body.$.id}},
+  "itens": [
+    {
+      "produtoId": {{produtoMouseId}},
+      "quantidade": 1
+    },
+    {
+      "produtoId": {{produtoMouseId}},
+      "quantidade": 2
+    }
+  ]
+}
+
+
+### 21. Alterar preço para demonstrar o snapshot
+
+PUT {{host}}/api/produtos/{{criarProdutoSnapshot.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nome": "{{criarProdutoSnapshot.response.body.$.nome}}",
+  "preco": 199.90,
+  "ativo": true
+}
+
+
+### 22. Pedido antigo mantém o preço original do item
+
+GET {{host}}/api/pedidos/{{criarPedidoPix.response.body.$.id}}
+Accept: application/json
+
+
+### 23. Excluir produto referenciado - esperado 409
+
+DELETE {{host}}/api/produtos/{{criarProdutoSnapshot.response.body.$.id}}
+
+
+### 24. Consultar o cliente criado
+
+GET {{host}}/api/clientes/{{criarCliente.response.body.$.id}}
+Accept: application/json
+
+
+### 25. Excluir cliente referenciado - esperado 409
+
+DELETE {{host}}/api/clientes/{{criarCliente.response.body.$.id}}
+
+
+### 26. Cancelar o pedido pago antes do envio
+
+PATCH {{host}}/api/pedidos/{{criarPedidoCartao.response.body.$.id}}/status
+Content-Type: application/json
+
+{
+  "status": "Cancelado"
+}
+
+
+### 27. Alterar pedido cancelado - esperado 409
+
+PATCH {{host}}/api/pedidos/{{criarPedidoCartao.response.body.$.id}}/status
+Content-Type: application/json
+
+{
+  "status": "Enviado"
+}

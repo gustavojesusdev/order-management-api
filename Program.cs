@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using OrderManagementApi.Data;
 using OrderManagementApi.Repositories;
@@ -5,7 +6,14 @@ using OrderManagementApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter()
+        );
+    });
 builder.Services.AddOpenApi();
 
 string connectionString =
@@ -23,11 +31,16 @@ builder.Services.AddDbContext<
 {
     options
         .UseSqlServer(connectionString)
-        .UseSeeding(ProdutoSeed.Seed)
+        .UseSeeding(DatabaseSeed.Seed)
         .UseAsyncSeeding(
-            ProdutoSeed.SeedAsync
+            DatabaseSeed.SeedAsync
         );
 });
+
+builder.Services.AddScoped<
+    IClienteRepository,
+    ClienteRepository
+>();
 
 builder.Services.AddScoped<
     IProdutoRepository,
@@ -35,8 +48,23 @@ builder.Services.AddScoped<
 >();
 
 builder.Services.AddScoped<
+    IPedidoRepository,
+    PedidoRepository
+>();
+
+builder.Services.AddScoped<
+    IClienteService,
+    ClienteService
+>();
+
+builder.Services.AddScoped<
     IProdutoService,
     ProdutoService
+>();
+
+builder.Services.AddScoped<
+    IPedidoService,
+    PedidoService
 >();
 
 var app = builder.Build();

@@ -13,11 +13,15 @@ public class ProdutoRequestDto
     public string Nome { get; set; } = string.Empty;
 
     [Range(
-        0.01,
-        double.MaxValue,
-        ErrorMessage = "O preço deve ser maior que zero."
+        typeof(decimal),
+        "0.01",
+        "99999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true,
+        ErrorMessage =
+            "O preço deve estar entre 0,01 e 99.999.999,99."
     )]
     public decimal Preco { get; set; }
 
-    public bool Ativo { get; set; }
+    public bool Ativo { get; set; } = true;
 }

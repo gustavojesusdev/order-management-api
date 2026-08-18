@@ -15,33 +15,26 @@ public class OrderManagementDbContext : DbContext
     public DbSet<Produto> Produtos =>
         Set<Produto>();
 
+    public DbSet<Cliente> Clientes =>
+        Set<Cliente>();
+
+    public DbSet<Pedido> Pedidos =>
+        Set<Pedido>();
+
+    public DbSet<ItemPedido> ItensPedido =>
+        Set<ItemPedido>();
+
+    public DbSet<Pagamento> Pagamentos =>
+        Set<Pagamento>();
+
     protected override void OnModelCreating(
         ModelBuilder modelBuilder
     )
     {
         base.OnModelCreating(modelBuilder);
 
-        var produto =
-            modelBuilder.Entity<Produto>();
-
-        produto.HasKey(produto => produto.Id);
-
-        produto.Property(produto => produto.Nome)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        produto.Property(produto => produto.Preco)
-            .IsRequired()
-            .HasPrecision(10, 2);
-
-        produto.Property(produto => produto.Ativo)
-            .IsRequired();
-
-        produto.ToTable(table =>
-            table.HasCheckConstraint(
-                "CK_Produtos_Preco_Positivo",
-                "[Preco] > 0"
-            )
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(OrderManagementDbContext).Assembly
         );
     }
 }

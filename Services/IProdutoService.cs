@@ -1,20 +1,31 @@
 using OrderManagementApi.Dtos;
-using OrderManagementApi.Models;
 
 namespace OrderManagementApi.Services;
 
 public interface IProdutoService
 {
-    Task<IReadOnlyList<Produto>> ObterTodosAsync();
+    Task<IReadOnlyList<ProdutoResponseDto>> ObterTodosAsync(
+        CancellationToken cancellationToken = default
+    );
 
-    Task<Produto?> ObterPorIdAsync(int id);
+    Task<ProdutoResponseDto?> ObterPorIdAsync(
+        int id,
+        CancellationToken cancellationToken = default
+    );
 
-    Task<Produto> CriarAsync(ProdutoRequestDto dto);
+    Task<ProdutoResponseDto> CriarAsync(
+        ProdutoRequestDto dto,
+        CancellationToken cancellationToken = default
+    );
 
     Task<bool> AtualizarAsync(
         int id,
-        ProdutoRequestDto dto
+        ProdutoRequestDto dto,
+        CancellationToken cancellationToken = default
     );
 
-    Task<bool> ExcluirAsync(int id);
+    Task<bool> ExcluirAsync(
+        int id,
+        CancellationToken cancellationToken = default
+    );
 }

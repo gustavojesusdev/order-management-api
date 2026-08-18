@@ -4,16 +4,38 @@ namespace OrderManagementApi.Repositories;
 
 public interface IProdutoRepository
 {
-    Task<IReadOnlyList<Produto>> ObterTodosAsync();
+    Task<IReadOnlyList<Produto>> ObterTodosAsync(
+        CancellationToken cancellationToken = default
+    );
 
-    Task<Produto?> ObterPorIdAsync(int id);
+    Task<Produto?> ObterPorIdAsync(
+        int id,
+        CancellationToken cancellationToken = default
+    );
 
-    Task<Produto> AdicionarAsync(Produto produto);
+    Task<IReadOnlyList<Produto>> ObterPorIdsAsync(
+        IEnumerable<int> ids,
+        CancellationToken cancellationToken = default
+    );
+
+    Task<Produto> AdicionarAsync(
+        Produto produto,
+        CancellationToken cancellationToken = default
+    );
 
     Task<bool> AtualizarAsync(
         int id,
-        Produto produtoAtualizado
+        Produto produtoAtualizado,
+        CancellationToken cancellationToken = default
     );
 
-    Task<bool> ExcluirAsync(int id);
+    Task<bool> ExcluirAsync(
+        int id,
+        CancellationToken cancellationToken = default
+    );
+
+    Task<bool> PossuiItensPedidoAsync(
+        int id,
+        CancellationToken cancellationToken = default
+    );
 }

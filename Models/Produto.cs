@@ -8,5 +8,8 @@ public class Produto
 
     public decimal Preco { get; set; }
 
-    public bool Ativo { get; set; }
+    public bool Ativo { get; set; } = true;
+
+    public ICollection<ItemPedido> ItensPedido { get; set; } =
+        new List<ItemPedido>();
 }
