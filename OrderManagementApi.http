@@ -1,0 +1,127 @@
+@OrderManagementApi_HostAddress = http://localhost:5211
+
+
+### GET - Listar produtos
+
+GET {{OrderManagementApi_HostAddress}}/api/Produtos
+Accept: application/json
+
+
+### POST válido
+
+POST {{OrderManagementApi_HostAddress}}/api/Produtos
+Content-Type: application/json
+
+{
+  "nome": "Headset",
+  "preco": 350,
+  "ativo": true
+}
+
+
+### POST inválido - nome vazio
+
+POST {{OrderManagementApi_HostAddress}}/api/Produtos
+Content-Type: application/json
+
+{
+  "nome": "",
+  "preco": 350,
+  "ativo": true
+}
+
+
+### POST inválido - nome muito curto
+
+POST {{OrderManagementApi_HostAddress}}/api/Produtos
+Content-Type: application/json
+
+{
+  "nome": "A",
+  "preco": 350,
+  "ativo": true
+}
+
+
+### POST inválido - preço zero
+
+POST {{OrderManagementApi_HostAddress}}/api/Produtos
+Content-Type: application/json
+
+{
+  "nome": "Headset",
+  "preco": 0,
+  "ativo": true
+}
+
+
+### POST inválido - preço negativo
+
+POST {{OrderManagementApi_HostAddress}}/api/Produtos
+Content-Type: application/json
+
+{
+  "nome": "Headset",
+  "preco": -200,
+  "ativo": true
+}
+
+
+### GET - Produto criado
+### Se você reiniciou a API antes dos testes, ele deverá ser ID 5.
+
+GET {{OrderManagementApi_HostAddress}}/api/Produtos/1
+Accept: application/json
+
+
+### PUT válido
+
+PUT {{OrderManagementApi_HostAddress}}/api/Produtos/5
+Content-Type: application/json
+
+{
+  "nome": "Headset Gamer Pro",
+  "preco": 499.90,
+  "ativo": true
+}
+
+
+### GET - Conferir alteração
+
+GET {{OrderManagementApi_HostAddress}}/api/Produtos/5
+Accept: application/json
+
+
+### PUT inválido - nome curto
+
+PUT {{OrderManagementApi_HostAddress}}/api/Produtos/5
+Content-Type: application/json
+
+{
+  "nome": "A",
+  "preco": 499.90,
+  "ativo": true
+}
+
+
+### PUT inválido - preço negativo
+
+PUT {{OrderManagementApi_HostAddress}}/api/Produtos/5
+Content-Type: application/json
+
+{
+  "nome": "Headset",
+  "preco": -50,
+  "ativo": true
+}
+
+
+### DELETE
+
+DELETE {{OrderManagementApi_HostAddress}}/api/Produtos/5
+
+
+### GET depois do DELETE - deve dar 404
+
+GET {{OrderManagementApi_HostAddress}}/api/Produtos/5
+Accept: application/json
