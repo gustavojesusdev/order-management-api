@@ -1,6 +1,6 @@
 # Relatório de validação da entrega
 
-> O registro inicial abaixo descreve a preparação de 18/08/2026. As verificações realizadas na máquina local em 28/10/2026 estão na seção final; a documentação foi revisada em 29/10/2026.
+> Este documento preserva a preparação inicial de 18/08/2026, a validação manual de 28/10/2026 e a validação automatizada de 29/10/2026, em seções datadas. Para executar a versão atual, siga o README; os comandos da preparação inicial são um registro histórico.
 
 Data da preparação: 18 de agosto de 2026.
 
@@ -52,7 +52,7 @@ dotnet run
 
 Depois, execute `OrderManagementApi.http` de cima para baixo. A migration local é proposital: o EF Core deve comparar o novo modelo com o snapshot real usando a mesma versão `10.0.10` do seu projeto.
 
-## Limites conhecidos e adiados
+## Limites registrados na preparação inicial
 
 - concorrência extrema entre requisições duplicadas ainda pode exigir tradução de `DbUpdateException`;
 - `rowversion`, tratamento global de erros e testes automatizados ficam para a etapa de robustez;
@@ -87,9 +87,57 @@ O cancelamento não implementa estorno. Os pagamentos são simulados.
 
 O script SQL idempotente foi regenerado e conferido: inclui Produtos, Clientes, Pedidos, ItensPedido, Pagamentos, chaves estrangeiras, índices e o histórico de AddOrderDomain. Não foi executado em um banco novo nesta etapa.
 
-Esta é uma validação manual dos cenários descritos, sem constituir uma suíte automatizada. A preparação dos testes automatizados integra a próxima etapa da Semana 8.
+Esta seção registra a validação manual de 28/10/2026. Os testes automatizados preparados e executados na etapa seguinte estão descritos abaixo.
 
 ## Revisão da documentação — 29/10/2026
 
 README e SETUP_LOCAL foram ajustados para conferir e aplicar as migrations versionadas, sem recriar AddOrderDomain, e iniciar a aplicação com `dotnet run --launch-profile http`.
 
+## Validação automatizada — 29/10/2026
+
+A Semana 8 acrescentou dois projetos de testes. As execuções locais no Windows foram conferidas pelas saídas do terminal, e os arquivos foram inspecionados no repositório.
+
+| Projeto | Aprovados | Falhas | Ignorados |
+|---|---:|---:|---:|
+| OrderManagementApi.Tests | 10 | 0 | 0 |
+| OrderManagementApi.IntegrationTests | 10 | 0 | 0 |
+
+Comandos executados na raiz:
+
+```powershell
+dotnet test tests/OrderManagementApi.Tests/OrderManagementApi.Tests.csproj
+dotnet test tests/OrderManagementApi.IntegrationTests/OrderManagementApi.IntegrationTests.csproj
+```
+
+### Testes unitários
+
+Os dez casos verificam o PedidoService real com repositórios simulados: taxas e totais de Pix/cartão, recusa de segundo pagamento, três transições proibidas, três permitidas e uso do preço histórico no pagamento. A preparação repetida foi extraída para métodos auxiliares, mantendo os dez casos aprovados.
+
+A referência explícita a System.Security.Cryptography.Pkcs 9.0.21 corrigiu os avisos da versão indireta 9.0.4 observados durante a restauração. A entrega unitária foi registrada no commit local `1ea3889`.
+
+### Testes de integração
+
+Foi exposta a classe Program com uma declaração public partial para permitir o uso de WebApplicationFactory. O projeto de integração referencia Microsoft.AspNetCore.Mvc.Testing 10.0.14.
+
+O teste de status verifica apenas HTTP e JSON, sem consultar o banco. Os demais cenários usam a aplicação com serviços e repositórios reais, EF Core e SQL Server LocalDB. A factory gera um banco OrderManagementApiTests_<GUID> por instância, valida o catálogo antes de aplicar as migrations e remove esse banco no descarte. Os dados são preparados por requisições HTTP, sem depender do seed ou dos IDs do banco de estudo.
+
+| Cenário | Casos |
+|---|---:|
+| Status da API, JSON e data UTC | 1 |
+| Cadastro de cliente com Location e consulta independente | 1 |
+| E-mail duplicado, com 409 e cadastro original preservado | 1 |
+| Pedido criado a preço 100; catálogo alterado a 199,90; consultas preservam preço 100 e total 200 no pedido | 1 |
+| Cliente ou produto inativo, com 409 e ausência de pedido gravado | 2 |
+| Produto repetido, com 400 e ausência de pedido gravado | 1 |
+| Pedido inexistente, com 404 e ProblemDetails | 1 |
+| Fluxos Pix e cartão até a entrega, com duas recusas 409 e leituras independentes por fluxo | 2 |
+
+Nos fluxos de pagamento, o subtotal é 200. Pix mantém taxa 0 e total 200; cartão registra taxa 6 e total 206. O segundo pagamento e a entrega antes de enviar são recusados. Novas consultas confirmam que as recusas preservam o pagamento e que o pedido termina em Entregue com os valores originais.
+
+A execução das migrations em bancos novos foi exercitada por esses testes. Isso não equivale a executar o arquivo SQL idempotente exportado: a execução desse script em banco novo continua sem evidência nesta condução.
+
+### Alcance da validação
+
+As duas suítes passaram sem erros ou avisos nas saídas finais observadas. Os pagamentos são simulados. Esta validação cobre os cenários enumerados; concorrência entre requisições simultâneas, carga, autenticação, estoque e integrações financeiras não foram avaliados. A suíte com banco, nesta versão, requer Windows e LocalDB; infraestrutura para outros ambientes e CI permanece para as próximas etapas.
+
+O histórico de preparação inicial e de testes manuais acima foi preservado. A afirmação inicial de que testes automatizados seriam futuros descreve o estado daquela preparação; os vinte cenários desta seção correspondem ao estado atual.

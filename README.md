@@ -44,6 +44,7 @@ Criado -> AguardandoPagamento -> Pago -> Enviado -> Entregue
 - Controllers, DTOs, Services e Repositories
 - OpenAPI
 - xUnit e NSubstitute para testes unitários
+- WebApplicationFactory / TestServer e SQL Server para testes de integração
 
 ## Endpoints principais
 
@@ -84,15 +85,15 @@ Use [OrderManagementApi.http](OrderManagementApi.http) para executar o fluxo com
 
 ## Testes automatizados
 
-Com o SDK .NET 10 instalado, execute na raiz do repositório:
+Os projetos de testes usam o SDK .NET 10. Execute os comandos abaixo na raiz do repositório; cada comando restaura as dependências necessárias e compila os projetos.
+
+### Testes unitários — 10 cenários
 
 ```bash
 dotnet test tests/OrderManagementApi.Tests/OrderManagementApi.Tests.csproj
 ```
 
-O comando restaura as dependências necessárias, compila a API e executa os testes. Para estes testes unitários, não é necessário iniciar a API, configurar o LocalDB ou aplicar migrations.
-
-Os testes usam o `PedidoService` real e substitutos dos repositórios criados com NSubstitute. A preparação comum está em métodos auxiliares; cada cenário cria seus próprios objetos e substitutos.
+Usam o `PedidoService` real e repositórios simulados com NSubstitute. Não precisam iniciar a API ou configurar um banco.
 
 | Regra verificada | Casos |
 |---|---:|
@@ -102,11 +103,45 @@ Os testes usam o `PedidoService` real e substitutos dos repositórios criados co
 | Transições proibidas: Pago → Entregue, Cancelado → Enviado, Entregue → Cancelado | 3 |
 | Transições permitidas: Pago → Enviado, Enviado → Entregue, Pago → Cancelado | 3 |
 | Pagamento usa o preço histórico do item após alteração do preço do produto | 1 |
-| **Total** | **10** |
+| **Total unitário** | **10** |
 
-Execução local confirmada em 29/10/2026: **10 aprovados, 0 falhas e 0 ignorados**, após a extração da preparação comum.
+A preparação comum fica em métodos auxiliares; cada cenário cria seus próprios objetos e substitutos.
 
-Esses testes não exercitam HTTP, controllers, consultas do EF Core ou persistência no SQL Server. O cenário de preço histórico verifica o cálculo do pagamento usando o preço já armazenado no item; a cópia automática desse preço na criação do pedido ainda precisa de cobertura de integração. O roteiro manual continua disponível em [OrderManagementApi.http](OrderManagementApi.http).
+### Testes de integração — 10 cenários
+
+Pré-requisitos desta versão: **Windows, SDK .NET 10 e SQL Server LocalDB com a instância `MSSQLLocalDB` disponível para o usuário que executa os testes**.
+
+```bash
+dotnet test tests/OrderManagementApi.IntegrationTests/OrderManagementApi.IntegrationTests.csproj
+```
+
+O `WebApplicationFactory` inicia a API automaticamente com `TestServer`, em ambiente `Testing`. As requisições HTTP passam pelas rotas e controllers reais, sem precisar executar `dotnet run` nem ocupar a porta 5211.
+
+Nos cenários com banco, a `ApiWebApplicationFactory` cria uma conexão exclusiva para `OrderManagementApiTests_<GUID>`, confere o nome do banco configurado e aplica as migrations versionadas. Os testes usam serviços, repositórios e EF Core reais. Ao encerrar cada instância com `using`, a factory remove apenas o banco temporário gerado por ela. Não é necessário executar `dotnet ef database update` para preparar esses bancos.
+
+A configuração de teste substitui as opções do DbContext e não usa o seed do banco de estudo. Os registros necessários são cadastrados pelo próprio teste, via HTTP. O teste de `/api/status` é independente do banco.
+
+| Cenário verificado por HTTP | Casos |
+|---|---:|
+| Status: 200, JSON, identificação da API e data UTC | 1 |
+| Cadastro de cliente: 201, Location e consulta independente com 200 | 1 |
+| E-mail repetido: 409 e cadastro original preservado | 1 |
+| Criação de pedido e preço histórico: produto de 100 para 199,90, item permanece 100 e total 200 | 1 |
+| Pedido com cliente inativo ou produto inativo: 409 e nenhum pedido gravado | 2 |
+| Produto repetido no pedido: 400 e nenhum pedido gravado | 1 |
+| Pedido inexistente: 404 com ProblemDetails | 1 |
+| Fluxo Pix e cartão: pagamento, recusas de duplicidade/entrega fora de ordem, envio e entrega | 2 |
+| **Total de integração** | **10** |
+
+No fluxo de pagamento, a base é R$200: Pix mantém taxa zero e total R$200; cartão aplica taxa de R$6 e total R$206. Novas consultas conferem a persistência dos estados e dos valores, inclusive após as recusas.
+
+### Resultado local e limites
+
+Execuções locais confirmadas em **29/10/2026**: **10 unitários e 10 de integração aprovados**, com **0 falhas e 0 ignorados** em cada projeto. A última verificação unitária ocorreu depois das alterações necessárias aos testes HTTP.
+
+Os unitários não exercitam persistência. Os testes de integração incluem a cópia automática do preço na criação e sua preservação no SQL Server; os cenários de erro conferem o código HTTP e o conteúdo de ProblemDetails. Esse conjunto cobre os cenários enumerados, sem medir carga ou concorrência entre pagamentos simultâneos. Os pagamentos continuam simulados.
+
+O roteiro manual está em [OrderManagementApi.http](OrderManagementApi.http). As instruções de integração acima usam LocalDB no Windows; a infraestrutura para outros ambientes e CI será preparada nas próximas etapas.
 
 A referência explícita a `System.Security.Cryptography.Pkcs 9.0.21` na API atualiza a dependência indireta trazida pelo cliente SQL e corrige os avisos [GHSA-2fmv-rv2c-59x7](https://github.com/advisories/GHSA-2fmv-rv2c-59x7) e [GHSA-846f-f764-76mx](https://github.com/advisories/GHSA-846f-f764-76mx) observados durante a restauração.
 
@@ -120,4 +155,4 @@ A referência explícita a `System.Security.Cryptography.Pkcs 9.0.21` na API atu
 
 ## Escopo consciente
 
-Esta etapa inclui o fluxo de pedidos e os dez cenários unitários descritos acima. Testes de integração e infraestrutura de execução fazem parte das próximas etapas da Semana 8. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.
+Esta etapa inclui o fluxo de pedidos, dez cenários unitários e dez de integração com HTTP e SQL Server. Execução reproduzível em outros ambientes e CI fazem parte das próximas etapas da Semana 8. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.
