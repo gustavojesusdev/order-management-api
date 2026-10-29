@@ -61,20 +61,19 @@ Criado -> AguardandoPagamento -> Pago -> Enviado -> Entregue
 
 ## Preparação local obrigatória
 
-O ZIP preserva as migrations anteriores. Como o modelo da Semana 7 adiciona quatro tabelas e novos relacionamentos, gere a migration no ambiente que possui o SDK do .NET e o SQL Server LocalDB:
+O projeto já inclui as migrations necessárias para o fluxo de pedidos. Para preparar o ambiente local, restaure as dependências, compile e aplique as migrations existentes ao banco usando os comandos abaixo.
 
 ```bash
 dotnet tool restore
 dotnet restore
 dotnet build
-dotnet ef migrations add AddOrderDomain
 dotnet ef database update
-dotnet run
+dotnet run --launch-profile http
 ```
 
 O projeto possui um manifesto local que restaura a versão `10.0.10` do `dotnet-ef`, igual à versão dos pacotes do EF Core.
 
-Depois de gerar a migration, atualize o script SQL versionado:
+Quando as migrations forem alteradas, gere novamente o script SQL versionado:
 
 ```bash
 dotnet ef migrations script --idempotent --output DatabaseScripts/OrderManagementApiDb.sql

@@ -1,5 +1,7 @@
 # Relatório de validação da entrega
 
+> O registro inicial abaixo descreve a preparação de 18/08/2026. As verificações realizadas na máquina local em 28/10/2026 estão na seção final; a documentação foi revisada em 29/10/2026.
+
 Data da preparação: 18 de agosto de 2026.
 
 ## Preservação
@@ -33,11 +35,11 @@ Durante a revisão foram corrigidos:
 - produto exclusivo para demonstrar o snapshot em execuções repetidas;
 - resposta interna apropriada para a falha excepcional de recarga do pedido.
 
-## Verificação local ainda obrigatória
+## Verificação local pendente na preparação inicial
 
-Este ambiente não possui o SDK do .NET nem SQL Server. Por isso, não foi possível executar build, gerar a migration, atualizar o banco ou disparar os requests reais.
+Na preparação inicial, o ambiente utilizado não possuía o SDK do .NET nem SQL Server. Por isso, naquele momento não foi possível executar build, gerar a migration, atualizar o banco ou disparar os requests reais. Os resultados locais posteriores estão na seção de 28/10/2026, ao final deste documento.
 
-Na sua máquina, execute:
+O roteiro proposto na preparação inicial era:
 
 ```bash
 dotnet tool restore
@@ -58,4 +60,36 @@ Depois, execute `OrderManagementApi.http` de cima para baixo. A migration local 
 - estoque e autenticação continuam fora do escopo.
 
 Esses pontos não bloqueiam o roteiro didático da Semana 7.
+
+## Validação local — 28/10/2026
+
+A aplicação foi compilada com sucesso com o SDK .NET 10.0.302 e executada no perfil HTTP em `http://localhost:5211`. O histórico do banco listou `InitialCreate`, `ConfigureProdutoSchema` e `AddOrderDomain` como aplicadas.
+
+As verificações foram realizadas manualmente pelo navegador e pelo REST Client, com as respostas conferidas durante a execução.
+
+| Cenário | Resultado observado |
+|---|---|
+| Cadastro e consulta de cliente | Sucesso; e-mail duplicado rejeitado com 409 |
+| Criação e consulta de pedidos | Itens, cliente, preços e totais recuperados corretamente |
+| Fluxo Pix | Criação → pagamento → envio → entrega; total 340 e taxa zero |
+| Pagamento por cartão | Subtotal 360, taxa de 3% igual a 10.80 e valor final 370.80 |
+| Pagamento repetido | Rejeitado com 409 |
+| Entrega antes do envio | Rejeitada com 409 |
+| Filtros por cliente e status | Resultados compatíveis com os critérios |
+| Produto inativo | Rejeitado com 409 |
+| Produto repetido no pedido | Rejeitado com 400 |
+| Snapshot de preço | Produto passou de 100 para 199.90; item do pedido antigo manteve 100 e pedido manteve total 340 |
+| Exclusão de produto ou cliente referenciado | Rejeitada com 409 para preservar o histórico |
+| Cancelamento antes do envio | Permitido, mantendo os itens e o registro de pagamento |
+| Alteração de pedido cancelado | Rejeitada com 409 por estado final |
+
+O cancelamento não implementa estorno. Os pagamentos são simulados.
+
+O script SQL idempotente foi regenerado e conferido: inclui Produtos, Clientes, Pedidos, ItensPedido, Pagamentos, chaves estrangeiras, índices e o histórico de AddOrderDomain. Não foi executado em um banco novo nesta etapa.
+
+Esta é uma validação manual dos cenários descritos, sem constituir uma suíte automatizada. A preparação dos testes automatizados integra a próxima etapa da Semana 8.
+
+## Revisão da documentação — 29/10/2026
+
+README e SETUP_LOCAL foram ajustados para conferir e aplicar as migrations versionadas, sem recriar AddOrderDomain, e iniciar a aplicação com `dotnet run --launch-profile http`.
 

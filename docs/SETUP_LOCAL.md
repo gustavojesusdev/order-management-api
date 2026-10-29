@@ -27,15 +27,15 @@ dotnet build
 
 Corrija qualquer erro de compilação antes de tocar no banco.
 
-## 3. Gerar a migration da Semana 7
+## 3. Conferir as migrations existentes
+
+As migrations `InitialCreate`, `ConfigureProdutoSchema` e `AddOrderDomain` já estão versionadas no projeto.
 
 ```bash
-dotnet ef migrations add AddOrderDomain
+dotnet ef migrations list --no-build
 ```
 
-Confira a migration gerada. Ela deve adicionar as tabelas `Clientes`, `Pedidos`, `ItensPedido` e `Pagamentos`, além das chaves estrangeiras, índices e restrições.
-
-Não apague nem edite as duas migrations anteriores: elas representam a evolução real do projeto.
+Confira quais estão aplicadas e quais estão pendentes. Preserve os arquivos existentes; a próxima etapa aplica ao banco as migrations pendentes.
 
 ## 4. Atualizar o banco
 
@@ -55,7 +55,7 @@ No SSMS, atualize a árvore do banco `OrderManagementApiDb` e verifique:
 ## 5. Executar
 
 ```bash
-dotnet run
+dotnet run --launch-profile http
 ```
 
 Abra `OrderManagementApi.http` e execute os requests de cima para baixo. IDs criados são capturados automaticamente dos responses; ajuste apenas os IDs dos produtos do seed se seu banco anterior usou outra numeração.
