@@ -2,7 +2,7 @@
 
 REST API de gerenciamento de clientes, produtos e pedidos construída com ASP.NET Core, Entity Framework Core e SQL Server.
 
-Esta é a versão integradora da **Semana 7**. Ela evolui o CRUD persistente de produtos da Semana 6 para um fluxo completo de pedidos, sem adicionar estoque ou autenticação antes da hora.
+O fluxo de pedidos foi consolidado na **Semana 7**. Na **Semana 8**, o projeto recebe testes automatizados e melhorias de execução e documentação para apresentação como portfólio de backend.
 
 ## O que a API faz
 
@@ -43,6 +43,7 @@ Criado -> AguardandoPagamento -> Pago -> Enviado -> Entregue
 - SQL Server LocalDB
 - Controllers, DTOs, Services e Repositories
 - OpenAPI
+- xUnit e NSubstitute para testes unitários
 
 ## Endpoints principais
 
@@ -81,6 +82,34 @@ dotnet ef migrations script --idempotent --output DatabaseScripts/OrderManagemen
 
 Use [OrderManagementApi.http](OrderManagementApi.http) para executar o fluxo completo.
 
+## Testes automatizados
+
+Com o SDK .NET 10 instalado, execute na raiz do repositório:
+
+```bash
+dotnet test tests/OrderManagementApi.Tests/OrderManagementApi.Tests.csproj
+```
+
+O comando restaura as dependências necessárias, compila a API e executa os testes. Para estes testes unitários, não é necessário iniciar a API, configurar o LocalDB ou aplicar migrations.
+
+Os testes usam o `PedidoService` real e substitutos dos repositórios criados com NSubstitute. A preparação comum está em métodos auxiliares; cada cenário cria seus próprios objetos e substitutos.
+
+| Regra verificada | Casos |
+|---|---:|
+| Cartão: base de R$360, taxa de R$10,80 e total de R$370,80 | 1 |
+| Pix: base de R$360, taxa zero e total de R$360 | 1 |
+| Segundo pagamento recusado, preservando o primeiro | 1 |
+| Transições proibidas: Pago → Entregue, Cancelado → Enviado, Entregue → Cancelado | 3 |
+| Transições permitidas: Pago → Enviado, Enviado → Entregue, Pago → Cancelado | 3 |
+| Pagamento usa o preço histórico do item após alteração do preço do produto | 1 |
+| **Total** | **10** |
+
+Execução local confirmada em 29/10/2026: **10 aprovados, 0 falhas e 0 ignorados**, após a extração da preparação comum.
+
+Esses testes não exercitam HTTP, controllers, consultas do EF Core ou persistência no SQL Server. O cenário de preço histórico verifica o cálculo do pagamento usando o preço já armazenado no item; a cópia automática desse preço na criação do pedido ainda precisa de cobertura de integração. O roteiro manual continua disponível em [OrderManagementApi.http](OrderManagementApi.http).
+
+A referência explícita a `System.Security.Cryptography.Pkcs 9.0.21` na API atualiza a dependência indireta trazida pelo cliente SQL e corrige os avisos [GHSA-2fmv-rv2c-59x7](https://github.com/advisories/GHSA-2fmv-rv2c-59x7) e [GHSA-846f-f764-76mx](https://github.com/advisories/GHSA-846f-f764-76mx) observados durante a restauração.
+
 ## Documentação de estudo
 
 - [Arquitetura e regras](docs/ARQUITETURA.md)
@@ -91,4 +120,4 @@ Use [OrderManagementApi.http](OrderManagementApi.http) para executar o fluxo com
 
 ## Escopo consciente
 
-Estoque, autenticação, testes automatizados, deploy e observabilidade ficam fora desta entrega. O objetivo aqui é consolidar relacionamentos, consultas com dados relacionados, DTOs, regras de negócio e consistência do banco antes da preparação profissional da Semana 8.
+Esta etapa inclui o fluxo de pedidos e os dez cenários unitários descritos acima. Testes de integração e infraestrutura de execução fazem parte das próximas etapas da Semana 8. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.
