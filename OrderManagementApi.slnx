@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/OrderManagementApi.IntegrationTests/OrderManagementApi.IntegrationTests.csproj" />
+    <Project Path="tests/OrderManagementApi.Tests/OrderManagementApi.Tests.csproj" />
+  </Folder>
+  <Project Path="OrderManagementApi.csproj" />
+</Solution>

@@ -1,182 +1,130 @@
 # Order Management API
 
-REST API de gerenciamento de clientes, produtos e pedidos construída com ASP.NET Core, Entity Framework Core e SQL Server.
+[![CI](https://github.com/gustavojesusdev/order-management-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gustavojesusdev/order-management-api/actions/workflows/ci.yml)
 
-O fluxo de pedidos foi consolidado na **Semana 7**. Na **Semana 8**, o projeto recebe testes automatizados e melhorias de execução e documentação para apresentação como portfólio de backend.
+API REST de gerenciamento de clientes, produtos e pedidos, desenvolvida em **C# com ASP.NET Core 10, Entity Framework Core e SQL Server**. Projeto de estudo e portfólio de backend, com testes automatizados, ambiente Docker e integração contínua no GitHub Actions.
 
-## O que a API faz
+O foco é preservar a consistência de uma compra: guardar o preço original, calcular o pagamento simulado e permitir apenas mudanças de status válidas.
 
-- CRUD assíncrono de clientes e produtos;
-- criação de pedido com vários itens;
-- snapshot do preço do produto no momento da compra;
-- pagamento por Pix (0%) ou cartão (3%);
-- fluxo de status controlado;
-- consulta de pedidos com cliente, itens, produtos e pagamento;
-- filtros opcionais por cliente e status;
-- validações de entrada e regras de negócio;
-- persistência em SQL Server com EF Core e migrations.
+**Exemplo:** um pedido criado com duas unidades de R$100 continua com subtotal de R$200 mesmo que o produto passe a custar R$199,90. No cartão, a regra didática de 3% gera taxa de R$6 e total de R$206.
 
-## Domínio
+## Executar e demonstrar
 
-```mermaid
-erDiagram
-    CLIENTE ||--o{ PEDIDO : realiza
-    PEDIDO ||--|{ ITEM_PEDIDO : contem
-    PRODUTO ||--o{ ITEM_PEDIDO : referencia
-    PEDIDO ||--o| PAGAMENTO : recebe
-```
-
-Estados possíveis do pedido:
-
-```text
-Criado -> AguardandoPagamento -> Pago -> Enviado -> Entregue
-                 |                 |
-                 +----> Cancelado <-+
-```
-
-`Entregue` e `Cancelado` são estados finais.
-
-## Tecnologias
-
-- .NET 10 / ASP.NET Core
-- Entity Framework Core 10
-- SQL Server LocalDB
-- Controllers, DTOs, Services e Repositories
-- OpenAPI
-- xUnit e NSubstitute para testes unitários
-- WebApplicationFactory / TestServer e SQL Server para testes de integração
-
-## Endpoints principais
-
-| Método | Rota | Finalidade |
-|---|---|---|
-| `GET` | `/api/status` | Verificar a API |
-| `GET/POST` | `/api/clientes` | Listar e cadastrar clientes |
-| `GET/PUT/DELETE` | `/api/clientes/{id}` | Consultar, atualizar e excluir cliente |
-| `GET/POST` | `/api/produtos` | Listar e cadastrar produtos |
-| `GET/PUT/DELETE` | `/api/produtos/{id}` | Consultar, atualizar e excluir produto |
-| `GET` | `/api/pedidos` | Listar pedidos e aplicar filtros |
-| `GET` | `/api/pedidos/{id}` | Consultar o pedido completo |
-| `POST` | `/api/pedidos` | Criar pedido |
-| `POST` | `/api/pedidos/{id}/pagamento` | Pagar pedido |
-| `PATCH` | `/api/pedidos/{id}/status` | Enviar, entregar ou cancelar pedido |
-
-## Execução com Docker
-
-O repositório inclui Dockerfile, Compose e um script PowerShell para iniciar a API .NET 10 com SQL Server 2022 Developer em containers Linux. O banco do Docker é separado do LocalDB e usa volume persistente.
-
-Após instalar Docker Desktop com WSL 2, execute na raiz:
+No Windows, com Docker Desktop instalado, motor Linux/WSL 2 iniciado e porta 5211 livre:
 
 ```powershell
+git clone https://github.com/gustavojesusdev/order-management-api.git
+cd order-management-api
 .\scripts\Start-Docker.ps1
+.\scripts\Invoke-Demo.ps1
 ```
 
-O script cria uma senha aleatória no arquivo .env local, valida o Compose, inicia os serviços e consulta a API e os produtos. A API usa http://localhost:5211 por padrão.
+Se já clonou o projeto, execute os dois scripts na raiz do repositório.
 
-**Validação local em 30/10/2026:** imagem construída, SQL Server saudável, API online e quatro produtos iniciais consultados. Um cliente cadastrado via HTTP permaneceu disponível com os mesmos dados depois de parar e iniciar os containers, mantendo o volume. Os testes de integração existentes continuam usando LocalDB no Windows.
+O primeiro prepara a API e o SQL Server, aplica as migrations e o seed e aguarda as consultas responderem. Uma senha aleatória é criada em .env, ignorado pelo Git. O banco do Docker usa um volume separado do LocalDB.
 
-Veja [requisitos, configuração e comandos do Docker](docs/DOCKER.md).
+O segundo demonstra o fluxo completo e interrompe caso uma resposta seja inesperada: cadastro, pedido, preço histórico, pagamento, recusas de operações inválidas, envio e entrega. Cada execução cria seus próprios registros no banco de demonstração e os mantém para consulta.
 
-## Preparação local obrigatória
+- Status: http://localhost:5211/api/status
+- Produtos: http://localhost:5211/api/produtos
+- [Roteiro da demonstração e resultados esperados](docs/DEMONSTRACAO.md)
+- [Requisitos, portas, configuração e persistência do Docker](docs/DOCKER.md)
+- [Execução nativa com SDK .NET 10 e SQL Server LocalDB](docs/SETUP_LOCAL.md)
 
-O projeto já inclui as migrations necessárias para o fluxo de pedidos. Para preparar o ambiente local, restaure as dependências, compile e aplique as migrations existentes ao banco usando os comandos abaixo.
+## Funcionalidades e regras
 
-```bash
-dotnet tool restore
-dotnet restore
-dotnet build
-dotnet ef database update
-dotnet run --launch-profile http
+- Cadastro, consulta, atualização e exclusão de clientes e produtos.
+- Pedidos com vários itens, produtos existentes e ativos e cliente ativo.
+- Rejeição de produtos repetidos e quantidades inválidas.
+- Cópia do preço de compra para cada item, preservando o valor histórico.
+- Pagamento **simulado** por Pix sem taxa ou cartão com taxa didática de 3%.
+- Recusa de segundo pagamento e de transições de status incompatíveis.
+- Filtros de pedidos por cliente e status.
+- Exclusão restrita de clientes e produtos referenciados, preservando o histórico.
+- Persistência em SQL Server com migrations, chaves, índices únicos e restrições.
+
+O fluxo público de compra é:
+
+```text
+AguardandoPagamento -> Pago -> Enviado -> Entregue
 ```
 
-O projeto possui um manifesto local que restaura a versão `10.0.10` do `dotnet-ef`, igual à versão dos pacotes do EF Core.
+Pedidos podem ser cancelados antes do envio. Entregue e Cancelado são estados finais. O cancelamento de um pedido pago preserva o registro do pagamento; não há estorno financeiro.
 
-Quando as migrations forem alteradas, gere novamente o script SQL versionado:
+## Organização do código
 
-```bash
-dotnet ef migrations script --idempotent --output DatabaseScripts/OrderManagementApiDb.sql
+```mermaid
+flowchart LR
+    HTTP["Requisição HTTP"] --> Controller["Controller: contrato HTTP"]
+    Controller --> Service["Service: regras e cálculos"]
+    Service --> Repository["Repository: consultas e gravações"]
+    Repository --> Database["EF Core / SQL Server"]
 ```
 
-Use [OrderManagementApi.http](OrderManagementApi.http) para executar o fluxo completo.
+Os DTOs definem os dados de entrada e saída; as entidades representam o domínio persistido. Interfaces permitem fornecer implementações reais na aplicação e repositórios simulados nos testes unitários.
 
-## Testes automatizados
+O arquivo [OrderManagementApi.slnx](OrderManagementApi.slnx) reúne a API e os dois projetos de testes. No VS Code com C# Dev Kit, selecione-o em **.NET: Switch Solution**. Para compilar os três:
 
-Os projetos de testes usam o SDK .NET 10. Execute os comandos abaixo na raiz do repositório; cada comando restaura as dependências necessárias e compila os projetos.
+```powershell
+dotnet build OrderManagementApi.slnx
+```
 
-### Testes unitários — 10 cenários
+Veja [arquitetura, relacionamentos e decisões](docs/ARQUITETURA.md).
 
-```bash
+## Testes e evidências
+
+| Verificação | O que exercita |
+|---|---|
+| 10 testes unitários | PedidoService real, cálculos, transições e repositórios simulados com NSubstitute |
+| 10 testes de integração | Rotas, controllers, serviços, EF Core e SQL Server LocalDB com bancos temporários isolados; o caso de status dispensa banco |
+| Demonstração HTTP | Aplicação em execução, preço histórico e fluxo de compra até a entrega |
+| Docker | Construção da imagem, inicialização de API/SQL e persistência após parar e iniciar |
+| GitHub Actions | Testes em Release, publicação da API e relatórios TRX |
+
+Para os unitários, use o SDK .NET 10. Para as integrações, use **Windows com SQL Server LocalDB e instância MSSQLLocalDB**:
+
+```powershell
 dotnet test tests/OrderManagementApi.Tests/OrderManagementApi.Tests.csproj
-```
-
-Usam o `PedidoService` real e repositórios simulados com NSubstitute. Não precisam iniciar a API ou configurar um banco.
-
-| Regra verificada | Casos |
-|---|---:|
-| Cartão: base de R$360, taxa de R$10,80 e total de R$370,80 | 1 |
-| Pix: base de R$360, taxa zero e total de R$360 | 1 |
-| Segundo pagamento recusado, preservando o primeiro | 1 |
-| Transições proibidas: Pago → Entregue, Cancelado → Enviado, Entregue → Cancelado | 3 |
-| Transições permitidas: Pago → Enviado, Enviado → Entregue, Pago → Cancelado | 3 |
-| Pagamento usa o preço histórico do item após alteração do preço do produto | 1 |
-| **Total unitário** | **10** |
-
-A preparação comum fica em métodos auxiliares; cada cenário cria seus próprios objetos e substitutos.
-
-### Testes de integração — 10 cenários
-
-Pré-requisitos desta versão: **Windows, SDK .NET 10 e SQL Server LocalDB com a instância `MSSQLLocalDB` disponível para o usuário que executa os testes**.
-
-```bash
 dotnet test tests/OrderManagementApi.IntegrationTests/OrderManagementApi.IntegrationTests.csproj
 ```
 
-O `WebApplicationFactory` inicia a API automaticamente com `TestServer`, em ambiente `Testing`. As requisições HTTP passam pelas rotas e controllers reais, sem precisar executar `dotnet run` nem ocupar a porta 5211.
+Os testes de integração iniciam a API com TestServer e criam seus próprios dados. Eles usam LocalDB no Windows, independentemente do banco Docker.
 
-Nos cenários com banco, a `ApiWebApplicationFactory` cria uma conexão exclusiva para `OrderManagementApiTests_<GUID>`, confere o nome do banco configurado e aplica as migrations versionadas. Os testes usam serviços, repositórios e EF Core reais. Ao encerrar cada instância com `using`, a factory remove apenas o banco temporário gerado por ela. Não é necessário executar `dotnet ef database update` para preparar esses bancos.
+Em 30/10/2026, as duas suítes passaram localmente, a execução Docker e sua persistência foram confirmadas e o [CI passou na main após o merge](https://github.com/gustavojesusdev/order-management-api/actions/runs/41130330057).
 
-A configuração de teste substitui as opções do DbContext e não usa o seed do banco de estudo. Os registros necessários são cadastrados pelo próprio teste, via HTTP. O teste de `/api/status` é independente do banco.
+- [Cenários de teste e preparação](docs/TESTES.md)
+- [Funcionamento do CI](docs/CI.md)
+- [Relatório de validação com datas e alcance](docs/RELATORIO_DE_VALIDACAO.md)
 
-| Cenário verificado por HTTP | Casos |
-|---|---:|
-| Status: 200, JSON, identificação da API e data UTC | 1 |
-| Cadastro de cliente: 201, Location e consulta independente com 200 | 1 |
-| E-mail repetido: 409 e cadastro original preservado | 1 |
-| Criação de pedido e preço histórico: produto de 100 para 199,90, item permanece 100 e total 200 | 1 |
-| Pedido com cliente inativo ou produto inativo: 409 e nenhum pedido gravado | 2 |
-| Produto repetido no pedido: 400 e nenhum pedido gravado | 1 |
-| Pedido inexistente: 404 com ProblemDetails | 1 |
-| Fluxo Pix e cartão: pagamento, recusas de duplicidade/entrega fora de ordem, envio e entrega | 2 |
-| **Total de integração** | **10** |
+O CI é acionado por push para main/feat/week-8-portfolio e por pull requests para main. Não realiza deploy ou publicação de imagens Docker.
 
-No fluxo de pagamento, a base é R$200: Pix mantém taxa zero e total R$200; cartão aplica taxa de R$6 e total R$206. Novas consultas conferem a persistência dos estados e dos valores, inclusive após as recusas.
+## Endpoints
 
-### Resultado local e limites
+| Método | Rota | Finalidade |
+|---|---|---|
+| GET | /api/status | Identificação e status da API |
+| GET / POST | /api/clientes | Listar e cadastrar clientes |
+| GET / PUT / DELETE | /api/clientes/{id} | Consultar, atualizar e excluir cliente |
+| GET / POST | /api/produtos | Listar e cadastrar produtos |
+| GET / PUT / DELETE | /api/produtos/{id} | Consultar, atualizar e excluir produto |
+| GET / POST | /api/pedidos | Listar com filtros ou criar pedido |
+| GET | /api/pedidos/{id} | Consultar pedido completo |
+| POST | /api/pedidos/{id}/pagamento | Registrar pagamento simulado |
+| PATCH | /api/pedidos/{id}/status | Enviar, entregar ou cancelar |
 
-Execuções locais confirmadas em **29/10/2026** e novamente em **30/10/2026**, em Release após a preparação Docker/CI: **10 unitários e 10 de integração aprovados**, com **0 falhas e 0 ignorados** em cada projeto. Em 30/10, as integrações foram executadas no PowerShell do usuário; o executor do chat havia encontrado uma restrição de ambiente ao criar a instância LocalDB.
+Use [OrderManagementApi.http](OrderManagementApi.http) para enviar as requisições manualmente. Os exemplos cobrem respostas de sucesso e erros esperados, incluindo HTTP 400, 404 e 409. O projeto também usa OpenAPI em ambiente Development.
 
-Os unitários não exercitam persistência. Os testes de integração incluem a cópia automática do preço na criação e sua preservação no SQL Server; os cenários de erro conferem o código HTTP e o conteúdo de ProblemDetails. Esse conjunto cobre os cenários enumerados, sem medir carga ou concorrência entre pagamentos simultâneos. Os pagamentos continuam simulados.
+## Alcance e evoluções
 
-O roteiro manual está em [OrderManagementApi.http](OrderManagementApi.http). As instruções de integração acima usam LocalDB no Windows. O ambiente Docker executa a aplicação em Linux; o workflow de CI usa Windows para executar as suítes atuais.
+Esta entrega é uma demonstração funcional de backend. Os pagamentos não movimentam dinheiro. Não há interface de loja, autenticação/autorização, estoque, gateway financeiro, deploy público ou observabilidade implementados.
 
-A referência explícita a `System.Security.Cryptography.Pkcs 9.0.21` na API atualiza a dependência indireta trazida pelo cliente SQL e corrige os avisos [GHSA-2fmv-rv2c-59x7](https://github.com/advisories/GHSA-2fmv-rv2c-59x7) e [GHSA-846f-f764-76mx](https://github.com/advisories/GHSA-846f-f764-76mx) observados durante a restauração.
+Os testes enumerados não comprovam cobertura total, carga ou concorrência entre requisições simultâneas. O banco garante unicidade, mas algumas disputas simultâneas ainda podem resultar em DbUpdateException; tratamento global de erros e controle de concorrência são evoluções futuras.
 
-## Integração contínua
+Próximas evoluções possíveis: autenticação, tratamento consistente de conflitos concorrentes e execução da integração com SQL Server em outros ambientes.
 
-O workflow [CI](.github/workflows/ci.yml) prepara .NET 10 e LocalDB no Windows, executa os dez testes unitários e os dez de integração em Release, verifica a publicação da API e guarda os relatórios de teste. É acionado por push para main ou feat/week-8-portfolio e por pull request para main.
+## Materiais de apoio
 
-**CI aprovado no GitHub em 30/10/2026:** a [primeira execução](https://github.com/gustavojesusdev/order-management-api/actions/runs/41125787191), referente ao commit aef49a8 na branch feat/week-8-portfolio, concluiu com sucesso em 1min56s e gerou o artifact resultados-dos-testes. Consulte [funcionamento e resultados do CI](docs/CI.md). A publicação nessa etapa gera arquivos de execução; não faz deploy.
-
-## Documentação de estudo
-
-- [Arquitetura e regras](docs/ARQUITETURA.md)
-- [Mapa de mudanças da Semana 6 para a 7](docs/MAPA_DE_MUDANCAS.md)
-- [Configuração e teste local](docs/SETUP_LOCAL.md)
-- [Execução com Docker](docs/DOCKER.md)
-- [Testes automáticos no GitHub](docs/CI.md)
-- [Guia acelerado da Semana 7](docs/GUIA_ESTUDO_SEMANA_7.md)
-- [Relatório de validação da entrega](docs/RELATORIO_DE_VALIDACAO.md)
-
-## Escopo consciente
-
-Esta etapa inclui o fluxo de pedidos, dez cenários unitários e dez de integração com HTTP e SQL Server. A execução Docker e a persistência após parar e iniciar foram validadas localmente; o workflow de CI teve sua primeira execução aprovada no GitHub. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.
+- [Como apresentar o projeto e explicar as decisões](docs/APRESENTACAO.md)
+- [Roteiro de demonstração](docs/DEMONSTRACAO.md)
+- [Histórico de estudo: guia da Semana 7](docs/GUIA_ESTUDO_SEMANA_7.md)
+- [Histórico de evolução das Semanas 6 e 7](docs/MAPA_DE_MUDANCAS.md)
