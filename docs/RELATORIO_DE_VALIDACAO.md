@@ -179,3 +179,13 @@ Foi adicionado .github/workflows/ci.yml: push para main/feat/week-8-portfolio e 
 A escolha de Windows preserva a suíte existente com SQL Server LocalDB e bancos temporários isolados. O workflow não usa o banco de estudo, não precisa da senha local .env e não faz deploy. O roteiro está em docs/CI.md. A primeira execução remota continua pendente de envio dos arquivos ao GitHub; a preparação local não é apresentada como resultado aprovado no servidor.
 
 Verificações locais da preparação: actionlint v1.7.12 aprovou o workflow sem diagnósticos, os dez testes unitários passaram em Release (0 falhas e 0 ignorados) com geração de TRX e a publicação Release da API concluiu com sucesso em pasta temporária fora do repositório. Uma nova consulta HTTP após a retomada do Docker conferiu ID, nome, e-mail e ativo do cliente de persistência.
+
+## Validação final local e primeira execução de CI — 30/10/2026
+
+Esta seção atualiza as pendências registradas na preparação acima.
+
+O usuário executou a suíte completa de integração em Release no seu PowerShell: dez aprovados, zero falhas e zero ignorados, em 8s. Esse resultado completa a revalidação local após os ajustes Docker/CI, junto dos dez unitários aprovados em Release pelo assistente. O erro anterior de LocalDB ocorreu no executor do chat; não se reproduziu nessa execução do usuário.
+
+A entrega foi registrada no commit aef49a8 (build: add Docker environment and Windows CI), com doze arquivos. O usuário confirmou árvore limpa e enviou feat/week-8-portfolio para origin, configurando seu rastreamento.
+
+A [execução CI #1](https://github.com/gustavojesusdev/order-management-api/actions/runs/41125787191), acionada por esse push, concluiu com status Success em 1min56s. A captura enviada pelo usuário confirma o job Build e testes (.NET 10 / LocalDB) aprovado e o artifact resultados-dos-testes de 10,7 KB. O job configurado executa as suítes unitária e de integração, verifica a publicação e guarda os relatórios TRX. Essa evidência valida a primeira execução remota no commit citado; não equivale a deploy da API nem à construção Docker no GitHub.

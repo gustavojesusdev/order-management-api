@@ -4,7 +4,7 @@ Esta configuração prepara a API .NET 10 e o SQL Server 2022 Developer em dois 
 
 ## Situação da validação
 
-Preparado em 30/10/2026. Os dez testes unitários, o teste HTTP de status e a publicação Release foram executados com sucesso após os ajustes. A revalidação completa da integração neste executor não pôde ser concluída: o LocalDB retornou "Cannot create an automatic instance". O resultado anterior de dez integrações aprovadas em 29/10 permanece registrado como execução anterior.
+Preparado em 30/10/2026. Os dez testes unitários e a publicação Release foram executados com sucesso após os ajustes. O executor do chat encontrou erro de criação de instância LocalDB; posteriormente o usuário executou os dez testes de integração em Release com sucesso no seu PowerShell. O [CI também foi aprovado no GitHub](https://github.com/gustavojesusdev/order-management-api/actions/runs/41125787191). Esses testes de integração usam LocalDB no Windows; a validação dos containers está descrita abaixo.
 
 Validado localmente em 30/10/2026 com Docker Desktop 4.97.0, Engine 29.9.2 Linux/amd64 e Compose v5.6.1. O usuário executou scripts/Start-Docker.ps1 no PowerShell: a imagem da API foi construída, o SQL Server ficou saudável e a API consultou quatro produtos iniciais. As migrations e o seed foram aplicados na inicialização do banco novo.
 

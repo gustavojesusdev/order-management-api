@@ -27,11 +27,11 @@ Depois de enviar a branch, abra a [aba Actions do repositorio](https://github.co
 
 ## Validacao e limites
 
-Preparado em 30/10/2026. A execucao remota ainda esta pendente de envio dos arquivos e de uma primeira rodada no GitHub. Um arquivo de workflow revisado localmente nao equivale a um resultado verde no servidor.
+Preparado e executado em 30/10/2026. A [primeira execucao no GitHub](https://github.com/gustavojesusdev/order-management-api/actions/runs/41125787191), acionada por push do commit aef49a8 na branch feat/week-8-portfolio, terminou com status Success em 1min56s. O job Build e testes (.NET 10 / LocalDB) foi aprovado e gerou o artifact resultados-dos-testes (10,7 KB). O resultado foi confirmado pela captura da pagina de execucao enviada pelo usuario.
 
 Verificacoes locais da preparacao: actionlint v1.7.12 aprovou o workflow sem diagnosticos; os dez testes unitarios passaram em Release e geraram o relatorio TRX; a publicacao Release da API tambem concluiu com sucesso. A publicacao usa uma pasta temporaria fora da arvore de codigo.
 
-A ultima execucao completa local registrada dos dois projetos foi em 29/10: dez unitarios e dez integracoes aprovados. A reexecucao das integracoes pelo executor do chat em 30/10 encontrou erro de criacao de instancia LocalDB; nao foi tratada como falha de regra de negocio nem omitida com filtros na automacao.
+As duas suites passaram localmente em 29/10 e novamente em 30/10, em Release: dez unitarios e dez integracoes, sem falhas ou ignorados. A reexecucao das integracoes pelo executor do chat em 30/10 encontrou erro de criacao de instancia LocalDB; o usuario executou a suite completa com sucesso no seu PowerShell. O workflow tambem executa a suite completa, sem filtros para omitir testes com banco.
 
 ## Referencias
 

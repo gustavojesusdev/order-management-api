@@ -153,7 +153,7 @@ No fluxo de pagamento, a base é R$200: Pix mantém taxa zero e total R$200; car
 
 ### Resultado local e limites
 
-Execuções locais confirmadas em **29/10/2026**: **10 unitários e 10 de integração aprovados**, com **0 falhas e 0 ignorados** em cada projeto. A última verificação unitária ocorreu depois das alterações necessárias aos testes HTTP.
+Execuções locais confirmadas em **29/10/2026** e novamente em **30/10/2026**, em Release após a preparação Docker/CI: **10 unitários e 10 de integração aprovados**, com **0 falhas e 0 ignorados** em cada projeto. Em 30/10, as integrações foram executadas no PowerShell do usuário; o executor do chat havia encontrado uma restrição de ambiente ao criar a instância LocalDB.
 
 Os unitários não exercitam persistência. Os testes de integração incluem a cópia automática do preço na criação e sua preservação no SQL Server; os cenários de erro conferem o código HTTP e o conteúdo de ProblemDetails. Esse conjunto cobre os cenários enumerados, sem medir carga ou concorrência entre pagamentos simultâneos. Os pagamentos continuam simulados.
 
@@ -165,7 +165,7 @@ A referência explícita a `System.Security.Cryptography.Pkcs 9.0.21` na API atu
 
 O workflow [CI](.github/workflows/ci.yml) prepara .NET 10 e LocalDB no Windows, executa os dez testes unitários e os dez de integração em Release, verifica a publicação da API e guarda os relatórios de teste. É acionado por push para main ou feat/week-8-portfolio e por pull request para main.
 
-**Primeira execução no GitHub pendente:** o arquivo foi preparado localmente e ainda precisa ser enviado. Consulte [funcionamento e resultados do CI](docs/CI.md). A publicação nessa etapa gera arquivos de execução; não faz deploy.
+**CI aprovado no GitHub em 30/10/2026:** a [primeira execução](https://github.com/gustavojesusdev/order-management-api/actions/runs/41125787191), referente ao commit aef49a8 na branch feat/week-8-portfolio, concluiu com sucesso em 1min56s e gerou o artifact resultados-dos-testes. Consulte [funcionamento e resultados do CI](docs/CI.md). A publicação nessa etapa gera arquivos de execução; não faz deploy.
 
 ## Documentação de estudo
 
@@ -179,4 +179,4 @@ O workflow [CI](.github/workflows/ci.yml) prepara .NET 10 e LocalDB no Windows, 
 
 ## Escopo consciente
 
-Esta etapa inclui o fluxo de pedidos, dez cenários unitários e dez de integração com HTTP e SQL Server. A execução Docker e a persistência após parar e iniciar foram validadas localmente; o workflow de CI está preparado, com primeira execução remota pendente. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.
+Esta etapa inclui o fluxo de pedidos, dez cenários unitários e dez de integração com HTTP e SQL Server. A execução Docker e a persistência após parar e iniciar foram validadas localmente; o workflow de CI teve sua primeira execução aprovada no GitHub. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.
