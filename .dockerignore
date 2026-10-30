@@ -1,0 +1,13 @@
+.git
+.vs
+.vscode
+**/bin
+**/obj
+**/TestResults
+**/coverage
+tests
+docs
+.env*
+*.user
+*.suo
+*.zip

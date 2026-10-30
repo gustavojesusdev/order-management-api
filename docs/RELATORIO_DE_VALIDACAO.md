@@ -141,3 +141,41 @@ A execução das migrations em bancos novos foi exercitada por esses testes. Iss
 As duas suítes passaram sem erros ou avisos nas saídas finais observadas. Os pagamentos são simulados. Esta validação cobre os cenários enumerados; concorrência entre requisições simultâneas, carga, autenticação, estoque e integrações financeiras não foram avaliados. A suíte com banco, nesta versão, requer Windows e LocalDB; infraestrutura para outros ambientes e CI permanece para as próximas etapas.
 
 O histórico de preparação inicial e de testes manuais acima foi preservado. A afirmação inicial de que testes automatizados seriam futuros descreve o estado daquela preparação; os vinte cenários desta seção correspondem ao estado atual.
+
+## Preparação do ambiente Docker — 30/10/2026
+
+Foram adicionados Dockerfile com construção em estágios e execução como usuário app, compose.yaml com API e SQL Server 2022 Developer, volume persistente, espera pela saúde do banco e publicação local da API em 127.0.0.1.
+
+O script scripts/Start-Docker.ps1 prepara uma senha aleatória em .env apenas se o arquivo ainda não existir, verifica o motor Linux, valida o Compose e inicia os serviços. A senha não é exibida; .env é ignorado pelo Git e pelo contexto de construção. O roteiro de uso está em docs/DOCKER.md.
+
+A API recebeu duas opções: Database:ApplyMigrationsOnStartup, desabilitada por padrão, e HttpsRedirection:Enabled, habilitada por padrão. O Compose habilita migrations/seed no seu banco próprio e configura HTTP para a demonstração local.
+
+Validações executadas neste executor após as alterações:
+
+- dez testes unitários aprovados;
+- teste HTTP de status aprovado;
+- publicação Release concluída;
+- script PowerShell analisado sem erros de sintaxe;
+- regras do Git confirmam que .env e .env.local são ignorados.
+
+A tentativa de reexecutar toda a integração encontrou erro de LocalDB: "Cannot create an automatic instance". A execução foi interrompida para evitar repetição da mesma falha de ambiente; não constitui uma revalidação completa dos cenários com banco. Os dez casos aprovados em 29/10 continuam registrados como resultado anterior.
+
+Atualização de 30/10/2026: o usuário instalou WSL e Docker Desktop. As capturas confirmam Desktop 4.97.0, Engine 29.9.2 com servidor Linux/amd64 e Compose v5.6.1. O executor do chat recebeu acesso negado à configuração e à conexão do Docker; os comandos Docker foram executados pelo usuário no PowerShell.
+
+### Execução Docker confirmada
+
+- scripts/Start-Docker.ps1 concluiu a validação do Compose, a construção da imagem da API e a inicialização dos serviços.
+- SQL Server 2022 ficou saudável; rede e volume foram criados. A inicialização da API aplicou migrations/seed no banco novo.
+- A API foi publicada em 127.0.0.1:5211, respondendo online em /api/status e retornando quatro produtos iniciais em /api/produtos. As respostas HTTP foram também consultadas diretamente pelo assistente.
+- Foi cadastrado e consultado via HTTP o cliente id 3, Teste Persistencia Docker.
+- O usuário executou docker compose stop e novamente scripts/Start-Docker.ps1. A consulta a /api/clientes/3 retornou o mesmo ID, nome, e-mail e ativo true. Portanto os dados persistiram entre a parada e a retomada com o volume existente.
+
+A execução dos containers e a persistência nesse cenário estão validadas. A suíte de integração continua usando LocalDB no Windows; não foi executada contra o banco do Docker. Não foram testadas remoção do volume, restauração de backup ou recuperação após perda de dados.
+
+## Preparação de CI — 30/10/2026
+
+Foi adicionado .github/workflows/ci.yml: push para main/feat/week-8-portfolio e pull requests para main acionam um runner Windows Server 2025, instalação do SDK .NET 10, inicialização do LocalDB, dez testes unitários e dez testes de integração em Release, publicação da API e armazenamento de relatórios TRX. Também permite acionamento manual quando disponível na branch padrão.
+
+A escolha de Windows preserva a suíte existente com SQL Server LocalDB e bancos temporários isolados. O workflow não usa o banco de estudo, não precisa da senha local .env e não faz deploy. O roteiro está em docs/CI.md. A primeira execução remota continua pendente de envio dos arquivos ao GitHub; a preparação local não é apresentada como resultado aprovado no servidor.
+
+Verificações locais da preparação: actionlint v1.7.12 aprovou o workflow sem diagnósticos, os dez testes unitários passaram em Release (0 falhas e 0 ignorados) com geração de TRX e a publicação Release da API concluiu com sucesso em pasta temporária fora do repositório. Uma nova consulta HTTP após a retomada do Docker conferiu ID, nome, e-mail e ativo do cliente de persistência.

@@ -61,6 +61,22 @@ Criado -> AguardandoPagamento -> Pago -> Enviado -> Entregue
 | `POST` | `/api/pedidos/{id}/pagamento` | Pagar pedido |
 | `PATCH` | `/api/pedidos/{id}/status` | Enviar, entregar ou cancelar pedido |
 
+## Execução com Docker
+
+O repositório inclui Dockerfile, Compose e um script PowerShell para iniciar a API .NET 10 com SQL Server 2022 Developer em containers Linux. O banco do Docker é separado do LocalDB e usa volume persistente.
+
+Após instalar Docker Desktop com WSL 2, execute na raiz:
+
+```powershell
+.\scripts\Start-Docker.ps1
+```
+
+O script cria uma senha aleatória no arquivo .env local, valida o Compose, inicia os serviços e consulta a API e os produtos. A API usa http://localhost:5211 por padrão.
+
+**Validação local em 30/10/2026:** imagem construída, SQL Server saudável, API online e quatro produtos iniciais consultados. Um cliente cadastrado via HTTP permaneceu disponível com os mesmos dados depois de parar e iniciar os containers, mantendo o volume. Os testes de integração existentes continuam usando LocalDB no Windows.
+
+Veja [requisitos, configuração e comandos do Docker](docs/DOCKER.md).
+
 ## Preparação local obrigatória
 
 O projeto já inclui as migrations necessárias para o fluxo de pedidos. Para preparar o ambiente local, restaure as dependências, compile e aplique as migrations existentes ao banco usando os comandos abaixo.
@@ -141,18 +157,26 @@ Execuções locais confirmadas em **29/10/2026**: **10 unitários e 10 de integr
 
 Os unitários não exercitam persistência. Os testes de integração incluem a cópia automática do preço na criação e sua preservação no SQL Server; os cenários de erro conferem o código HTTP e o conteúdo de ProblemDetails. Esse conjunto cobre os cenários enumerados, sem medir carga ou concorrência entre pagamentos simultâneos. Os pagamentos continuam simulados.
 
-O roteiro manual está em [OrderManagementApi.http](OrderManagementApi.http). As instruções de integração acima usam LocalDB no Windows; a infraestrutura para outros ambientes e CI será preparada nas próximas etapas.
+O roteiro manual está em [OrderManagementApi.http](OrderManagementApi.http). As instruções de integração acima usam LocalDB no Windows. O ambiente Docker executa a aplicação em Linux; o workflow de CI usa Windows para executar as suítes atuais.
 
 A referência explícita a `System.Security.Cryptography.Pkcs 9.0.21` na API atualiza a dependência indireta trazida pelo cliente SQL e corrige os avisos [GHSA-2fmv-rv2c-59x7](https://github.com/advisories/GHSA-2fmv-rv2c-59x7) e [GHSA-846f-f764-76mx](https://github.com/advisories/GHSA-846f-f764-76mx) observados durante a restauração.
+
+## Integração contínua
+
+O workflow [CI](.github/workflows/ci.yml) prepara .NET 10 e LocalDB no Windows, executa os dez testes unitários e os dez de integração em Release, verifica a publicação da API e guarda os relatórios de teste. É acionado por push para main ou feat/week-8-portfolio e por pull request para main.
+
+**Primeira execução no GitHub pendente:** o arquivo foi preparado localmente e ainda precisa ser enviado. Consulte [funcionamento e resultados do CI](docs/CI.md). A publicação nessa etapa gera arquivos de execução; não faz deploy.
 
 ## Documentação de estudo
 
 - [Arquitetura e regras](docs/ARQUITETURA.md)
 - [Mapa de mudanças da Semana 6 para a 7](docs/MAPA_DE_MUDANCAS.md)
 - [Configuração e teste local](docs/SETUP_LOCAL.md)
+- [Execução com Docker](docs/DOCKER.md)
+- [Testes automáticos no GitHub](docs/CI.md)
 - [Guia acelerado da Semana 7](docs/GUIA_ESTUDO_SEMANA_7.md)
 - [Relatório de validação da entrega](docs/RELATORIO_DE_VALIDACAO.md)
 
 ## Escopo consciente
 
-Esta etapa inclui o fluxo de pedidos, dez cenários unitários e dez de integração com HTTP e SQL Server. Execução reproduzível em outros ambientes e CI fazem parte das próximas etapas da Semana 8. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.
+Esta etapa inclui o fluxo de pedidos, dez cenários unitários e dez de integração com HTTP e SQL Server. A execução Docker e a persistência após parar e iniciar foram validadas localmente; o workflow de CI está preparado, com primeira execução remota pendente. Estoque, autenticação, cobrança real, deploy e observabilidade permanecem fora do escopo implementado.

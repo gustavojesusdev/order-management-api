@@ -69,12 +69,27 @@ builder.Services.AddScoped<
 
 var app = builder.Build();
 
+// A inicializacao automatica do banco e habilitada apenas por configuracao.
+if (app.Configuration.GetValue<bool>(
+        "Database:ApplyMigrationsOnStartup"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var context = scope.ServiceProvider
+        .GetRequiredService<OrderManagementDbContext>();
+
+    await context.Database.MigrateAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+if (app.Configuration.GetValue(
+        "HttpsRedirection:Enabled", true))
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthorization();
 app.MapControllers();
 
