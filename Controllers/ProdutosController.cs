@@ -1,40 +1,38 @@
 using Microsoft.AspNetCore.Mvc;
 using OrderManagementApi.Dtos;
-using OrderManagementApi.Models;
 using OrderManagementApi.Services;
 
 namespace OrderManagementApi.Controllers;
 
 [ApiController]
-[Route("api/Produtos")]
+[Route("api/produtos")]
 public class ProdutosController : ControllerBase
 {
     private readonly IProdutoService _service;
 
-    public ProdutosController(
-        IProdutoService service
-    )
+    public ProdutosController(IProdutoService service)
     {
         _service = service;
     }
 
     [HttpGet]
-    public async Task<
-        ActionResult<IEnumerable<Produto>>
-    > ObterTodos()
+    public async Task<ActionResult<IReadOnlyList<ProdutoResponseDto>>>
+        ObterTodos(CancellationToken cancellationToken)
     {
-        IReadOnlyList<Produto> produtos =
-            await _service.ObterTodosAsync();
+        IReadOnlyList<ProdutoResponseDto> produtos =
+            await _service.ObterTodosAsync(cancellationToken);
 
         return Ok(produtos);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Produto>>
-        ObterPorId(int id)
+    public async Task<ActionResult<ProdutoResponseDto>> ObterPorId(
+        int id,
+        CancellationToken cancellationToken
+    )
     {
-        Produto? produto =
-            await _service.ObterPorIdAsync(id);
+        ProdutoResponseDto? produto =
+            await _service.ObterPorIdAsync(id, cancellationToken);
 
         if (produto is null)
         {
@@ -45,12 +43,13 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Produto>> Criar(
-        ProdutoRequestDto dto
+    public async Task<ActionResult<ProdutoResponseDto>> Criar(
+        ProdutoRequestDto dto,
+        CancellationToken cancellationToken
     )
     {
-        Produto novoProduto =
-            await _service.CriarAsync(dto);
+        ProdutoResponseDto novoProduto =
+            await _service.CriarAsync(dto, cancellationToken);
 
         return CreatedAtAction(
             nameof(ObterPorId),
@@ -62,11 +61,15 @@ public class ProdutosController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Atualizar(
         int id,
-        ProdutoRequestDto dto
+        ProdutoRequestDto dto,
+        CancellationToken cancellationToken
     )
     {
-        bool atualizado =
-            await _service.AtualizarAsync(id, dto);
+        bool atualizado = await _service.AtualizarAsync(
+            id,
+            dto,
+            cancellationToken
+        );
 
         if (!atualizado)
         {
@@ -77,16 +80,33 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Excluir(int id)
+    public async Task<IActionResult> Excluir(
+        int id,
+        CancellationToken cancellationToken
+    )
     {
-        bool excluido =
-            await _service.ExcluirAsync(id);
-
-        if (!excluido)
+        try
         {
-            return NotFound();
-        }
+            bool excluido = await _service.ExcluirAsync(
+                id,
+                cancellationToken
+            );
 
-        return NoContent();
+            if (!excluido)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Produto não pode ser excluído",
+                Detail = exception.Message
+            });
+        }
     }
 }
