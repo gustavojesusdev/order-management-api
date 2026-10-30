@@ -189,3 +189,15 @@ O usuário executou a suíte completa de integração em Release no seu PowerShe
 A entrega foi registrada no commit aef49a8 (build: add Docker environment and Windows CI), com doze arquivos. O usuário confirmou árvore limpa e enviou feat/week-8-portfolio para origin, configurando seu rastreamento.
 
 A [execução CI #1](https://github.com/gustavojesusdev/order-management-api/actions/runs/41125787191), acionada por esse push, concluiu com status Success em 1min56s. A captura enviada pelo usuário confirma o job Build e testes (.NET 10 / LocalDB) aprovado e o artifact resultados-dos-testes de 10,7 KB. O job configurado executa as suítes unitária e de integração, verifica a publicação e guarda os relatórios TRX. Essa evidência valida a primeira execução remota no commit citado; não equivale a deploy da API nem à construção Docker no GitHub.
+
+## Merge, solução e apresentação — 30/10/2026
+
+O PR #1 foi incorporado à main no commit 2b0a68c. A consulta direta à API pública do GitHub confirmou o merge e a [execução CI da main](https://github.com/gustavojesusdev/order-management-api/actions/runs/41130330057) concluída com sucesso nesse commit. As execuções de push e de pull request do commit fcfb183 também haviam sido aprovadas.
+
+O aviso MSB4121 observado no VS Code veio da solução temporária do C# Dev Kit: o projeto de integração estava sem o mapeamento Debug/Any CPU. Foi adicionado OrderManagementApi.slnx com a API e os dois projetos de testes. A compilação explícita dessa solução em Debug concluiu com zero erros e zero avisos. O usuário depois informou que o indicador de problemas do editor desapareceu.
+
+A apresentação inclui README reorganizado, detalhes de testes em docs/TESTES.md, guia de explicação em docs/APRESENTACAO.md e roteiro em docs/DEMONSTRACAO.md. O script scripts/Invoke-Demo.ps1 usa registros exclusivos, envia HTTP para a API em execução e verifica criação, preço histórico, pagamento por cartão, duas recusas HTTP 409 e envio/entrega.
+
+O script foi executado com sucesso em PowerShell 7 e Windows PowerShell 5.1 contra a API disponível em localhost:5211. As duas execuções criaram registros distintos e concluíram o fluxo: catálogo 199,90, preço histórico 100, subtotal 200, taxa 6, total 206 e status final Entregue. Os pedidos gerados foram 1 e 2; os dados de demonstração permaneceram no banco. Esses fluxos adicionais são demonstrações e não alteram a contagem de vinte casos xUnit.
+
+Esta seção registra a preparação local da apresentação. O CI citado valida o commit 2b0a68c; os arquivos de apresentação e a solução ainda precisam ser versionados e enviados em uma nova entrega. Nenhuma publicação no LinkedIn, revisão de currículo anexado ou deploy foi realizado nesta etapa.
